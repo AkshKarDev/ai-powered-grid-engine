@@ -1,22 +1,28 @@
 
 import React, { useState } from 'react';
-import { Search, X, FilterX } from 'lucide-react';
+import { Search, X, FilterX, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { FilterConfig } from '@/types/grid';
+import { FilterConfig, GroupConfig } from '@/types/grid';
 
 interface GridToolbarProps {
   filters: FilterConfig[];
+  groups: GroupConfig[];
   onAddFilter: (filter: FilterConfig) => void;
   onRemoveFilter: (field: string) => void;
   onClearFilters: () => void;
+  onRemoveGroup: (field: string) => void;
+  onClearGroups: () => void;
 }
 
 const GridToolbar: React.FC<GridToolbarProps> = ({
   filters,
+  groups,
   onAddFilter,
   onRemoveFilter,
-  onClearFilters
+  onClearFilters,
+  onRemoveGroup,
+  onClearGroups
 }) => {
   const [searchField, setSearchField] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -77,6 +83,35 @@ const GridToolbar: React.FC<GridToolbarProps> = ({
           >
             <FilterX size={16} />
             Clear All
+          </Button>
+        </div>
+      )}
+
+      {groups.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Active groups:</span>
+          {groups.map((group) => (
+            <div
+              key={group.field}
+              className="flex items-center gap-1 px-2 py-1 bg-green-100 rounded text-sm"
+            >
+              <Users size={14} />
+              <span>{group.field}</span>
+              <button
+                onClick={() => onRemoveGroup(group.field)}
+                className="text-green-600 hover:text-green-800"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          <Button
+            onClick={onClearGroups}
+            variant="outline"
+            size="sm"
+          >
+            <Users size={16} />
+            Clear Groups
           </Button>
         </div>
       )}

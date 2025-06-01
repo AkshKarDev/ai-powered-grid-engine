@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { GridRow, GridColumn, SortConfig, FilterConfig, GridState, GridConfig, GroupConfig, GroupedRow } from '@/types/grid';
-import { groupData, toggleGroupExpansion } from '@/utils/gridGrouping';
+import { groupData, toggleGroupExpansion as toggleGroupExpansionUtil } from '@/utils/gridGrouping';
 
 export const useGridViewModel = (
   initialData: GridRow[],
@@ -147,7 +147,7 @@ export const useGridViewModel = (
   const toggleGroupExpansion = useCallback((groupKey: string) => {
     setState(prev => ({
       ...prev,
-      expandedGroups: toggleGroupExpansion(prev.expandedGroups, groupKey)
+      expandedGroups: toggleGroupExpansionUtil(prev.expandedGroups, groupKey)
     }));
   }, []);
 
