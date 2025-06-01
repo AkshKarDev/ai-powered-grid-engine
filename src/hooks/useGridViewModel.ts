@@ -1,26 +1,42 @@
 
 import { useState, useMemo, useCallback } from 'react';
-import { GridRow, GridColumn, SortConfig, FilterConfig, GridState, GridConfig } from '@/types/grid';
+import { GridRow, GridColumn, SortConfig, FilterConfig, GridState, GridConfig, GroupConfig, GroupedRow } from '@/types/grid';
+import { groupData, toggleGroupExpansion } from '@/utils/gridGrouping';
 
 export const useGridViewModel = (
   initialData: GridRow[],
-  columns: GridColumn[],
+  initialColumns: GridColumn[],
   config: GridConfig = {
     rowHeight: 40,
     headerHeight: 50,
+    groupRowHeight: 44,
     overscan: 5,
-    virtualScrolling: true
+    virtualScrolling: true,
+    enableGrouping: true,
+    enableColumnDragging: true,
+    theme: 'default'
   }
 ) => {
   const [state, setState] = useState<GridState>({
     data: initialData,
     filteredData: initialData,
+    processedData: initialData,
     sortConfig: null,
     filters: [],
+    groups: [],
     selectedRows: new Set(),
     scrollTop: 0,
-    scrollLeft: 0
+    scrollLeft: 0,
+    columnOrder: initialColumns.map(col => col.id),
+    expandedGroups: new Set()
   });
+
+  // Get ordered columns
+  const orderedColumns = useMemo(() => {
+    return state.columnOrder
+      .map(id => initialColumns.find(col => col.id === id))
+      .filter(Boolean) as GridColumn[];
+  }, [state.columnOrder, initialColumns]);
 
   // Sorting logic
   const sortData = useCallback((data: GridRow[], sortConfig: SortConfig | null): GridRow[] => {
@@ -70,16 +86,21 @@ export const useGridViewModel = (
     });
   }, []);
 
-  // Process data (filter then sort)
+  // Process data (filter, sort, then group)
   const processedData = useMemo(() => {
     let result = filterData(state.data, state.filters);
     result = sortData(result, state.sortConfig);
+    
+    if (state.groups.length > 0) {
+      return groupData(result, state.groups, state.expandedGroups);
+    }
+    
     return result;
-  }, [state.data, state.filters, state.sortConfig, filterData, sortData]);
+  }, [state.data, state.filters, state.sortConfig, state.groups, state.expandedGroups, filterData, sortData]);
 
-  // Update filtered data when processed data changes
+  // Update processed data when it changes
   useMemo(() => {
-    setState(prev => ({ ...prev, filteredData: processedData }));
+    setState(prev => ({ ...prev, processedData }));
   }, [processedData]);
 
   // Actions
@@ -105,6 +126,35 @@ export const useGridViewModel = (
     setState(prev => ({ ...prev, filters: [] }));
   }, []);
 
+  const addGroup = useCallback((field: string) => {
+    setState(prev => ({
+      ...prev,
+      groups: [...prev.groups.filter(g => g.field !== field), { field, expanded: true }]
+    }));
+  }, []);
+
+  const removeGroup = useCallback((field: string) => {
+    setState(prev => ({
+      ...prev,
+      groups: prev.groups.filter(g => g.field !== field)
+    }));
+  }, []);
+
+  const clearGroups = useCallback(() => {
+    setState(prev => ({ ...prev, groups: [], expandedGroups: new Set() }));
+  }, []);
+
+  const toggleGroupExpansion = useCallback((groupKey: string) => {
+    setState(prev => ({
+      ...prev,
+      expandedGroups: toggleGroupExpansion(prev.expandedGroups, groupKey)
+    }));
+  }, []);
+
+  const reorderColumns = useCallback((newOrder: string[]) => {
+    setState(prev => ({ ...prev, columnOrder: newOrder }));
+  }, []);
+
   const setScrollPosition = useCallback((scrollTop: number, scrollLeft: number) => {
     setState(prev => ({ ...prev, scrollTop, scrollLeft }));
   }, []);
@@ -124,12 +174,17 @@ export const useGridViewModel = (
   return {
     state,
     config,
-    columns,
+    columns: orderedColumns,
     processedData,
     setSortConfig,
     addFilter,
     removeFilter,
     clearFilters,
+    addGroup,
+    removeGroup,
+    clearGroups,
+    toggleGroupExpansion,
+    reorderColumns,
     setScrollPosition,
     toggleRowSelection
   };

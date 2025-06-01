@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { GridColumn, GridRow as GridRowType } from '@/types/grid';
+import { useGridTheme } from './GridThemeProvider';
 import { cn } from '@/lib/utils';
 
 interface GridRowProps {
@@ -9,6 +10,7 @@ interface GridRowProps {
   isSelected: boolean;
   onSelect: (rowId: string) => void;
   height: number;
+  level?: number;
   style?: React.CSSProperties;
 }
 
@@ -18,8 +20,11 @@ const GridRow: React.FC<GridRowProps> = ({
   isSelected,
   onSelect,
   height,
+  level = 0,
   style
 }) => {
+  const { theme } = useGridTheme();
+
   const formatCellValue = (value: any, column: GridColumn): string => {
     if (column.formatter) {
       return column.formatter(value);
@@ -35,24 +40,37 @@ const GridRow: React.FC<GridRowProps> = ({
   return (
     <div
       className={cn(
-        "flex border-b border-gray-200 hover:bg-gray-50 cursor-pointer",
-        isSelected && "bg-blue-50 border-blue-200"
+        "flex border-b cursor-pointer transition-colors",
+        "hover:opacity-80"
       )}
-      style={{ height, ...style }}
+      style={{ 
+        height, 
+        backgroundColor: isSelected 
+          ? theme.colors.selectedRowBackground 
+          : theme.colors.rowBackground,
+        borderColor: theme.colors.borderColor,
+        color: isSelected ? theme.colors.selectedTextColor : theme.colors.textColor,
+        fontSize: theme.typography.fontSize,
+        fontWeight: theme.typography.fontWeight,
+        ...style 
+      }}
       onClick={() => onSelect(row.id)}
     >
-      {columns.map((column) => (
+      {columns.map((column, index) => (
         <div
           key={column.id}
-          className="flex items-center px-3 py-2 border-r border-gray-200 truncate"
+          className="flex items-center border-r truncate"
           style={{ 
             width: column.width || 150,
             minWidth: column.minWidth || 100,
-            maxWidth: column.maxWidth || 300
+            maxWidth: column.maxWidth || 300,
+            borderColor: theme.colors.borderColor,
+            padding: theme.spacing.cellPadding,
+            paddingLeft: index === 0 ? `${level * 20 + 12}px` : theme.spacing.cellPadding
           }}
           title={formatCellValue(row[column.field], column)}
         >
-          <span className="text-sm text-gray-900">
+          <span className="truncate">
             {formatCellValue(row[column.field], column)}
           </span>
         </div>
